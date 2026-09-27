@@ -1,6 +1,28 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Delay before folding": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Задержка сворачивания"
+          }
+        }
+      }
+    },
+    "20 seconds": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "20 секунд"
+          }
+        }
+      }
+    },
     "Expand for active agents": {
       "extractionState": "manual",
       "localizations": {

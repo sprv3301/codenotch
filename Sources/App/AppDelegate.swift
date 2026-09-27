@@ -624,6 +624,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 .sink { [weak fleet] in fleet?.apply(showsSettingsHandle: $0) }
                 .store(in: &cancellables)
 
+            preferences.$agentCollapseDelay
+                .receive(on: RunLoop.main)
+                .sink { [weak fleet] in fleet?.apply(agentCollapseDelay: $0) }
+                .store(in: &cancellables)
+
             preferences.$expandsForAgentActivity
                 .receive(on: RunLoop.main)
                 .sink { [weak fleet] in fleet?.apply(expandsForAgentActivity: $0) }
@@ -993,6 +998,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         fleet.apply(expandedHoverDetails: preferences.expandedHoverDetails)
         fleet.apply(remainingNotchPercentages: preferences.remainingNotchPercentages)
         fleet.apply(showsSettingsHandle: preferences.showsSettingsHandle)
+        fleet.apply(agentCollapseDelay: preferences.agentCollapseDelay)
         fleet.apply(expandsForAgentActivity: preferences.expandsForAgentActivity)
         fleet.apply(showsMoveHandle: preferences.showsMoveHandle)
         fleet.apply(foldsForFullScreen: preferences.foldsForFullScreen)

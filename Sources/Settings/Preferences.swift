@@ -94,6 +94,10 @@ final class Preferences: ObservableObject {
     }
 
     /// How much of itself the notch shows at rest.
+    @Published var agentCollapseDelay: Int {
+        didSet { defaults.set(agentCollapseDelay, forKey: Keys.agentCollapseDelay) }
+    }
+
     @Published var expandsForAgentActivity: Bool {
         didSet { defaults.set(expandsForAgentActivity, forKey: Keys.expandsForAgentActivity) }
     }
@@ -525,6 +529,7 @@ final class Preferences: ObservableObject {
         static let mutedAlerts = "mutedAlertProviders"
         static let accountNicknames = "accountNicknames"
         static let hasLaunched = "hasLaunchedBefore"
+        static let agentCollapseDelay = "agentCollapseDelay"
         static let expandsForAgentActivity = "expandsForAgentActivity"
         static let visibility = "notchVisibility"
         static let foldsForFullScreen = "foldsForFullScreen"
@@ -817,6 +822,8 @@ final class Preferences: ObservableObject {
         // Absent means never chosen, which is the hover behaviour the app was
         // designed around — not hidden, which would make a fresh install look
         // like it failed to start.
+        let storedAgentDelay = defaults.integer(forKey: Keys.agentCollapseDelay)
+        self.agentCollapseDelay = [5, 10, 20].contains(storedAgentDelay) ? storedAgentDelay : 20
         self.expandsForAgentActivity = defaults.object(forKey: Keys.expandsForAgentActivity) as? Bool ?? false
         self.notchVisibility = defaults.string(forKey: Keys.visibility)
             .flatMap(NotchVisibility.init(rawValue:)) ?? .onHover

@@ -25,6 +25,9 @@ final class NotchFleet {
     private(set) var scope: NotchScreenScope
     private var edge: NotchEdge
     private var expandsForAgentActivity = false
+    private var agentCollapseDelay: TimeInterval = 20
+    private var agentCollapseWork: DispatchWorkItem?
+    private var agentExpansionHeld = false
     private static let agentBundleIDs: Set<String> = [
         "com.openai.codex", "com.anthropic.claudefordesktop",
         "com.todesktop.230313mzl4w4u92", "com.google.antigravity"
@@ -129,10 +132,45 @@ final class NotchFleet {
         }
     }
 
-    private func updateAgentExpansion() {
-        let holdsOpen = agentHoldsOpen
+    func apply(agentCollapseDelay: Int) {
+        self.agentCollapseDelay = TimeInterval(agentCollapseDelay)
+        if agentCollapseWork != nil {
+            agentCollapseWork?.cancel()
+            agentCollapseWork = nil
+            updateAgentExpansion()
+        }
+    }
+
+    private func setAgentExpansionHeld(_ held: Bool) {
+        agentExpansionHeld = held
         for controller in controllers.values {
-            controller.apply(agentHoldsOpen: holdsOpen)
+            controller.apply(agentHoldsOpen: held)
+        }
+    }
+
+    private func updateAgentExpansion() {
+        if agentHoldsOpen {
+            agentCollapseWork?.cancel()
+            agentCollapseWork = nil
+            setAgentExpansionHeld(true)
+        } else if !expandsForAgentActivity {
+            agentCollapseWork?.cancel()
+            agentCollapseWork = nil
+            setAgentExpansionHeld(false)
+        } else if agentExpansionHeld && agentCollapseWork == nil {
+            let work = DispatchWorkItem { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    self.agentCollapseWork = nil
+                    if self.agentHoldsOpen {
+                        self.setAgentExpansionHeld(true)
+                    } else {
+                        self.setAgentExpansionHeld(false)
+                    }
+                }
+            }
+            agentCollapseWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + agentCollapseDelay, execute: work)
         }
     }
 
@@ -544,7 +582,7 @@ final class NotchFleet {
         controller.model.sessions = sessions
         controller.model.now = Date()
         controller.apply(visibility)
-        controller.apply(agentHoldsOpen: agentHoldsOpen)
+        controller.apply(agentHoldsOpen: agentExpansionHeld)
         controller.show()
         return controller
     }
