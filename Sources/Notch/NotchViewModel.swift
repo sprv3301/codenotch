@@ -206,6 +206,9 @@ final class NotchViewModel: ObservableObject {
     @Published var colorTransitionStyle: ColorTransitionStyle = .hardStep
     /// Whether the move handle is on the notch at all. Mirrored from Settings
     /// like `weeklyRing`.
+    @Published var expandedHoverDetails = true
+    @Published var remainingNotchPercentages = false
+    @Published var showsSettingsHandle = true
     @Published var showsMoveHandle = true
     /// Mirrors the persisted Appearance choice so the separate notch window
     /// redraws immediately when Settings changes it.
@@ -951,6 +954,7 @@ final class NotchViewModel: ObservableObject {
     /// reaching for, and — where it has parted company with it — the arc you
     /// can actually see.
     var orbHandlePoints: [CGPoint] {
+        guard showsSettingsHandle else { return [] }
         let button = CGPoint(x: orbAlong, y: orbInset)
         guard orbHugsCorner else { return [button] }
 
@@ -1107,7 +1111,7 @@ final class NotchViewModel: ObservableObject {
     var sessionCap: Int { sessionCap(cellCount: snapshots.count) }
 
     private var hasTokenUsage: Bool {
-        snapshots.contains { $0.tokenUsage != nil }
+        expandedHoverDetails && snapshots.contains { $0.tokenUsage != nil || $0.customUsageHistory != nil }
     }
 
     private var hasPlan: Bool {
@@ -1115,7 +1119,7 @@ final class NotchViewModel: ObservableObject {
     }
 
     private var hasResetCredits: Bool {
-        snapshots.contains(where: \.hasAvailableResetCredits)
+        expandedHoverDetails && snapshots.contains(where: \.hasAvailableResetCredits)
     }
 
     func sessionCap(cellCount: Int) -> Int {
@@ -1132,14 +1136,14 @@ final class NotchViewModel: ObservableObject {
             NotchLayout.cardHeight(windowCount: snapshot.windows.count,
                 groupCount: Set(snapshot.windows.compactMap(\.group)).count,
                 moneyWindowCount: snapshot.windows.filter { $0.money != nil }.count,
-                usageDetailGroupCount: snapshot.usageDetail?.visibleGroups.count ?? 0,
+                usageDetailGroupCount: expandedHoverDetails ? (snapshot.usageDetail?.visibleGroups.count ?? 0) : 0,
                 sessionCount: snapshot.localModel == nil ? sessionCap + 1 : 0,
                 sessionCap: sessionCap,
                 statusMessage: snapshot.statusMessage,
                 blockMessage: snapshot.block?.summary(now: now),
-                hasTokenUsage: snapshot.tokenUsage != nil,
+                hasTokenUsage: expandedHoverDetails && (snapshot.tokenUsage != nil || snapshot.customUsageHistory != nil),
                 hasPlan: snapshot.plan != nil,
-                hasResetCredits: snapshot.hasAvailableResetCredits,
+                hasResetCredits: expandedHoverDetails && snapshot.hasAvailableResetCredits,
                 localModelName: snapshot.localModel?.name,
                 showsLocalPerformance: snapshot.showsLocalPerformance,
                 localLedgerRows: snapshot.localLedgerRowCount,

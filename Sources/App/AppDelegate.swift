@@ -609,6 +609,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 .sink { [weak fleet] in fleet?.apply(weeklyRing: $0) }
                 .store(in: &cancellables)
 
+            preferences.$expandedHoverDetails
+                .receive(on: RunLoop.main)
+                .sink { [weak fleet] in fleet?.apply(expandedHoverDetails: $0) }
+                .store(in: &cancellables)
+
+            preferences.$remainingNotchPercentages
+                .receive(on: RunLoop.main)
+                .sink { [weak fleet] in fleet?.apply(remainingNotchPercentages: $0) }
+                .store(in: &cancellables)
+
+            preferences.$showsSettingsHandle
+                .receive(on: RunLoop.main)
+                .sink { [weak fleet] in fleet?.apply(showsSettingsHandle: $0) }
+                .store(in: &cancellables)
+
+            preferences.$expandsForAgentActivity
+                .receive(on: RunLoop.main)
+                .sink { [weak fleet] in fleet?.apply(expandsForAgentActivity: $0) }
+                .store(in: &cancellables)
+
             preferences.$showsMoveHandle
                 .receive(on: RunLoop.main)
                 .sink { [weak fleet] in fleet?.apply(showsMoveHandle: $0) }
@@ -970,6 +990,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         fleet.apply(weeklyRingDashed: preferences.weeklyRingDashed)
         fleet.apply(showsNotchReadings: preferences.showsNotchReadings)
         fleet.apply(weeklyReading: preferences.weeklyReading)
+        fleet.apply(expandedHoverDetails: preferences.expandedHoverDetails)
+        fleet.apply(remainingNotchPercentages: preferences.remainingNotchPercentages)
+        fleet.apply(showsSettingsHandle: preferences.showsSettingsHandle)
+        fleet.apply(expandsForAgentActivity: preferences.expandsForAgentActivity)
         fleet.apply(showsMoveHandle: preferences.showsMoveHandle)
         fleet.apply(foldsForFullScreen: preferences.foldsForFullScreen)
         fleet.apply(surfaceStyle: preferences.notchSurfaceStyle)

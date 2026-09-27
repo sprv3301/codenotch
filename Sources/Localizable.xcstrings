@@ -1,6 +1,83 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Expand for active agents": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Раскрывать при активности агентов"
+          }
+        }
+      }
+    },
+    "Keeps the notch open while an agent app is frontmost or a session is working or waiting. Otherwise follows Show. Hide keeps the notch hidden.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Держит notch раскрытым, когда приложение агента на переднем плане или сессия работает либо ждёт ответа. В остальное время действует основной режим. Режим «Скрыть» сохраняется."
+          }
+        }
+      }
+    },
+    "Hover display": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отображение при наведении"
+          }
+        }
+      }
+    },
+    "Brief": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Краткое"
+          }
+        }
+      }
+    },
+    "Expanded": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Расширенное"
+          }
+        }
+      }
+    },
+    "Show remaining percentage in notch": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показывать оставшийся процент в notch"
+          }
+        }
+      }
+    },
+    "Show settings handle": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показывать арку настроек"
+          }
+        }
+      }
+    },
     "%@ · %@": {
       "extractionState": "manual",
       "localizations": {

@@ -24,6 +24,11 @@ final class NotchFleet {
 
     private(set) var scope: NotchScreenScope
     private var edge: NotchEdge
+    private var expandsForAgentActivity = false
+    private static let agentBundleIDs: Set<String> = [
+        "com.openai.codex", "com.anthropic.claudefordesktop",
+        "com.todesktop.230313mzl4w4u92", "com.google.antigravity"
+    ]
     private var visibility: NotchVisibility = .onHover
 
     private var snapshots: [ProviderSnapshot] = []
@@ -61,6 +66,9 @@ final class NotchFleet {
     private var weeklyRingDashed: Bool = false
     private var showsNotchReadings: Bool = true
     private var weeklyReading: Bool = false
+    private var expandedHoverDetails = true
+    private var remainingNotchPercentages = false
+    private var showsSettingsHandle = true
     private var showsMoveHandle = true
     private var foldsForFullScreen = true
     private var surfaceStyle: NotchSurfaceStyle = .glass
@@ -94,6 +102,38 @@ final class NotchFleet {
     init(scope: NotchScreenScope, edge: NotchEdge) {
         self.scope = scope
         self.edge = edge
+        let notifications = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.didActivateApplicationNotification,
+                     NSWorkspace.didDeactivateApplicationNotification,
+                     NSWorkspace.didHideApplicationNotification,
+                     NSWorkspace.didTerminateApplicationNotification] {
+            notifications.publisher(for: name)
+                .receive(on: RunLoop.main)
+                .sink { [weak self] _ in self?.updateAgentExpansion() }
+                .store(in: &cancellables)
+        }
+    }
+
+    func apply(expandsForAgentActivity: Bool) {
+        self.expandsForAgentActivity = expandsForAgentActivity
+        updateAgentExpansion()
+    }
+
+    private var agentHoldsOpen: Bool {
+        guard expandsForAgentActivity else { return false }
+        if let app = NSWorkspace.shared.frontmostApplication,
+           !app.isHidden, let id = app.bundleIdentifier,
+           Self.agentBundleIDs.contains(id) { return true }
+        return sessions.values.contains { sessions in
+            sessions.contains { $0.state == .busy || $0.state == .waiting }
+        }
+    }
+
+    private func updateAgentExpansion() {
+        let holdsOpen = agentHoldsOpen
+        for controller in controllers.values {
+            controller.apply(agentHoldsOpen: holdsOpen)
+        }
     }
 
     /// Guards `apply(scope:)`/`apply(displayPreference:)` from reconciling
@@ -165,6 +205,29 @@ final class NotchFleet {
         self.resetTimeFormat = resetTimeFormat
         for controller in controllers.values {
             controller.model.resetTimeFormat = resetTimeFormat
+        }
+    }
+
+    func apply(expandedHoverDetails: Bool) {
+        self.expandedHoverDetails = expandedHoverDetails
+        for controller in controllers.values {
+            controller.model.expandedHoverDetails = expandedHoverDetails
+            controller.relocate()
+        }
+    }
+
+    func apply(remainingNotchPercentages: Bool) {
+        self.remainingNotchPercentages = remainingNotchPercentages
+        for controller in controllers.values {
+            controller.model.remainingNotchPercentages = remainingNotchPercentages
+            controller.relocate()
+        }
+    }
+
+    func apply(showsSettingsHandle: Bool) {
+        self.showsSettingsHandle = showsSettingsHandle
+        for controller in controllers.values {
+            controller.apply(showsSettingsHandle: showsSettingsHandle)
         }
     }
 
@@ -343,6 +406,7 @@ final class NotchFleet {
 
     func setSessions(providerID id: String, sessions live: [AgentSession]) {
         sessions[id] = live
+        defer { updateAgentExpansion() }
         let now = Date()
         menuModel.sessions[id] = live
         menuModel.now = now
@@ -452,6 +516,9 @@ final class NotchFleet {
         controller.model.weeklyRingDashed = weeklyRingDashed
         controller.model.showsNotchReadings = showsNotchReadings
         controller.model.weeklyReading = weeklyReading
+        controller.model.expandedHoverDetails = expandedHoverDetails
+        controller.model.remainingNotchPercentages = remainingNotchPercentages
+        controller.model.showsSettingsHandle = showsSettingsHandle
         controller.model.showsMoveHandle = showsMoveHandle
         controller.model.surfaceStyle = surfaceStyle
         controller.model.deepSeekPricingEnabled = deepSeekPricingEnabled
@@ -477,6 +544,7 @@ final class NotchFleet {
         controller.model.sessions = sessions
         controller.model.now = Date()
         controller.apply(visibility)
+        controller.apply(agentHoldsOpen: agentHoldsOpen)
         controller.show()
         return controller
     }

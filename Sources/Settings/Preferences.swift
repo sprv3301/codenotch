@@ -94,6 +94,10 @@ final class Preferences: ObservableObject {
     }
 
     /// How much of itself the notch shows at rest.
+    @Published var expandsForAgentActivity: Bool {
+        didSet { defaults.set(expandsForAgentActivity, forKey: Keys.expandsForAgentActivity) }
+    }
+
     @Published var notchVisibility: NotchVisibility {
         didSet { defaults.set(notchVisibility.rawValue, forKey: Keys.visibility) }
     }
@@ -277,6 +281,18 @@ final class Preferences: ObservableObject {
     }
 
     /// Whether the move handle's arc is drawn above the notch.
+    @Published var expandedHoverDetails: Bool {
+        didSet { defaults.set(expandedHoverDetails, forKey: Keys.expandedHoverDetails) }
+    }
+
+    @Published var remainingNotchPercentages: Bool {
+        didSet { defaults.set(remainingNotchPercentages, forKey: Keys.remainingNotchPercentages) }
+    }
+
+    @Published var showsSettingsHandle: Bool {
+        didSet { defaults.set(showsSettingsHandle, forKey: Keys.showsSettingsHandle) }
+    }
+
     @Published var showsMoveHandle: Bool {
         didSet { defaults.set(showsMoveHandle, forKey: Keys.showsMoveHandle) }
     }
@@ -509,6 +525,7 @@ final class Preferences: ObservableObject {
         static let mutedAlerts = "mutedAlertProviders"
         static let accountNicknames = "accountNicknames"
         static let hasLaunched = "hasLaunchedBefore"
+        static let expandsForAgentActivity = "expandsForAgentActivity"
         static let visibility = "notchVisibility"
         static let foldsForFullScreen = "foldsForFullScreen"
         static let presence = "appPresence"
@@ -532,6 +549,9 @@ final class Preferences: ObservableObject {
         static let weeklyReading = "weeklyReading"
         static let claudeDailyPaceRing = "claudeDailyPaceRing"
         static let weeklyHeadline = "weeklyHeadline"
+        static let expandedHoverDetails = "expandedHoverDetails"
+        static let remainingNotchPercentages = "remainingNotchPercentages"
+        static let showsSettingsHandle = "showsSettingsHandle"
         static let showsMoveHandle = "showsMoveHandle"
         static let notchSurfaceStyle = "notchSurfaceStyle"
         static let watchLimit = "watchLimit"
@@ -797,6 +817,7 @@ final class Preferences: ObservableObject {
         // Absent means never chosen, which is the hover behaviour the app was
         // designed around — not hidden, which would make a fresh install look
         // like it failed to start.
+        self.expandsForAgentActivity = defaults.object(forKey: Keys.expandsForAgentActivity) as? Bool ?? false
         self.notchVisibility = defaults.string(forKey: Keys.visibility)
             .flatMap(NotchVisibility.init(rawValue:)) ?? .onHover
         // Absent means the fold that has shipped since full-screen detection
@@ -872,6 +893,9 @@ final class Preferences: ObservableObject {
             .flatMap(WeeklyRing.init(rawValue:)) ?? .off
         // On unless turned off: it is how the notch is carried to another edge,
         // and a control that is missing by default is one nobody finds.
+        self.expandedHoverDetails = defaults.object(forKey: Keys.expandedHoverDetails) as? Bool ?? true
+        self.remainingNotchPercentages = defaults.object(forKey: Keys.remainingNotchPercentages) as? Bool ?? false
+        self.showsSettingsHandle = defaults.object(forKey: Keys.showsSettingsHandle) as? Bool ?? true
         self.showsMoveHandle = defaults.object(forKey: Keys.showsMoveHandle) as? Bool ?? true
         self.accentColor = defaults.string(forKey: Keys.accentColor)
             .flatMap(AccentColorChoice.init(rawValue:)) ?? .system

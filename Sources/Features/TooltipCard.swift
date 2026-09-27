@@ -1093,6 +1093,7 @@ struct TooltipCard: View {
     /// How many sessions this screen has room to list. Solved from the display
     /// rather than fixed, so a big screen hides nothing.
     var sessionCap: Int = NotchLayout.defaultSessionCap
+    var expandedDetails: Bool = true
     var resetTimeFormat: ResetTimeFormat = .automatic
     var deepSeekPricingEnabled: Bool = true
     var deepSeekPricingSchedule: DeepSeekPricing.Schedule = .current
@@ -1116,14 +1117,14 @@ struct TooltipCard: View {
             windowCount: snapshot.windows.count,
             groupCount: snapshot.windowGroupCount,
             moneyWindowCount: snapshot.windows.filter { $0.money != nil }.count,
-            usageDetailGroupCount: snapshot.usageDetail?.visibleGroups.count ?? 0,
+            usageDetailGroupCount: expandedDetails ? (snapshot.usageDetail?.visibleGroups.count ?? 0) : 0,
             sessionCount: snapshot.localModel == nil ? (activity?.sessions.count ?? 0) : 0,
             sessionCap: sessionCap,
             statusMessage: snapshot.statusMessage,
             blockMessage: snapshot.block?.summary(now: now),
-            hasTokenUsage: snapshot.tokenUsage != nil || snapshot.customUsageHistory != nil,
+            hasTokenUsage: expandedDetails && (snapshot.tokenUsage != nil || snapshot.customUsageHistory != nil),
             hasPlan: snapshot.plan != nil,
-            hasResetCredits: snapshot.availableResetCredits(at: now) != nil,
+            hasResetCredits: expandedDetails && snapshot.availableResetCredits(at: now) != nil,
             localModelName: snapshot.localModel?.name,
             showsLocalPerformance: snapshot.showsLocalPerformance,
                 localLedgerRows: snapshot.localLedgerRowCount,
@@ -1142,18 +1143,20 @@ struct TooltipCard: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ProviderTooltip(activityNote: localActivityNote, snapshot: snapshot, now: now, resetTimeFormat: resetTimeFormat,
                                     showUsagePace: showUsagePace)
-                    if let resetCredits = snapshot.availableResetCredits(at: now) {
-                        UsageResetCreditsSection(credits: resetCredits, now: now)
-                    }
-                    if let tokenUsage = snapshot.tokenUsage {
-                        CodexUsageSection(usage: tokenUsage, now: now)
-                    } else if let history = snapshot.customUsageHistory {
-                        CodexUsageSection(usage: history.codexUsage, now: now)
-                    }
-                    if let usageDetail = snapshot.usageDetail, usageDetail.hasUsage {
-                        DeepSeekUsageDetail(detail: usageDetail, now: now,
-                                            schedule: deepSeekPricingSchedule,
-                                            showsPricing: deepSeekPricingEnabled)
+                    if expandedDetails {
+                        if let resetCredits = snapshot.availableResetCredits(at: now) {
+                            UsageResetCreditsSection(credits: resetCredits, now: now)
+                        }
+                        if let tokenUsage = snapshot.tokenUsage {
+                            CodexUsageSection(usage: tokenUsage, now: now)
+                        } else if let history = snapshot.customUsageHistory {
+                            CodexUsageSection(usage: history.codexUsage, now: now)
+                        }
+                        if let usageDetail = snapshot.usageDetail, usageDetail.hasUsage {
+                            DeepSeekUsageDetail(detail: usageDetail, now: now,
+                                                schedule: deepSeekPricingSchedule,
+                                                showsPricing: deepSeekPricingEnabled)
+                        }
                     }
                     if let activity, snapshot.localModel == nil {
                         SessionList(summary: activity, now: now, cap: sessionCap,

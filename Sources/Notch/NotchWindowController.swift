@@ -79,6 +79,7 @@ final class NotchWindowController {
     /// not what should end it.
     private var peekUntil: Date?
     /// The standing visibility choice, so a peek never overrides Hidden.
+    private var agentHoldsOpen = false
     private var visibility: NotchVisibility = .onHover
     /// Whether we have pushed the pointing hand onto the cursor stack.
     private var isPointing = false
@@ -127,6 +128,11 @@ final class NotchWindowController {
     /// When a full-screen app is active on the current space, auto-folds the notch.
     /// When returning to a desktop space with `isAlwaysOn`, restores the unfolded state.
     func handleActiveSpaceOrAppChange() {
+        if agentHoldsOpen && visibility != .hidden {
+            setExpanded(true)
+            updateInteractiveRects()
+            return
+        }
         if foldsForFullScreen && isFullScreenActive() && !model.isPinned {
             if let panel {
                 let local = localCursor(in: panel.frame)
@@ -621,14 +627,14 @@ final class NotchWindowController {
             windowCount: snapshot.windows.count,
             groupCount: snapshot.windowGroupCount,
             moneyWindowCount: snapshot.windows.filter { $0.money != nil }.count,
-            usageDetailGroupCount: snapshot.usageDetail?.visibleGroups.count ?? 0,
+            usageDetailGroupCount: model.expandedHoverDetails ? (snapshot.usageDetail?.visibleGroups.count ?? 0) : 0,
             sessionCount: snapshot.localModel == nil ? (model.activity(for: snapshot.id)?.sessions.count ?? 0) : 0,
             sessionCap: model.sessionCap,
             statusMessage: snapshot.statusMessage,
             blockMessage: snapshot.block?.summary(now: model.now),
-            hasTokenUsage: snapshot.tokenUsage != nil,
+            hasTokenUsage: model.expandedHoverDetails && (snapshot.tokenUsage != nil || snapshot.customUsageHistory != nil),
             hasPlan: snapshot.plan != nil,
-            hasResetCredits: snapshot.hasAvailableResetCredits,
+            hasResetCredits: model.expandedHoverDetails && snapshot.hasAvailableResetCredits,
             localModelName: snapshot.localModel?.name,
             showsLocalPerformance: snapshot.showsLocalPerformance,
                 localLedgerRows: snapshot.localLedgerRowCount,
@@ -821,7 +827,7 @@ final class NotchWindowController {
     /// about to be scheduled on a notch that "Always show" would otherwise
     /// hold open — because answering it asks WindowServer.
     private func setExpanded(_ wanted: Bool, ignoreAlwaysOn: @autoclosure () -> Bool = false) {
-        if wanted {
+        if wanted || (agentHoldsOpen && visibility != .hidden) {
             foldWork?.cancel()
             foldWork = nil
             guard !model.isExpanded else { return }
@@ -841,7 +847,7 @@ final class NotchWindowController {
             MainActor.assumeIsolated {
                 guard let self else { return }
                 self.foldWork = nil
-                let stillHoldsOpen = self.model.isPinned || (self.model.isAlwaysOn && !ignoresAlwaysOn)
+                let stillHoldsOpen = self.agentHoldsOpen || self.model.isPinned || (self.model.isAlwaysOn && !ignoresAlwaysOn)
                 guard !stillHoldsOpen else { return }
                 withAnimation(NotchMotion.unfold) {
                     self.model.isExpanded = false
@@ -979,6 +985,12 @@ final class NotchWindowController {
     /// vanish with it, but the window only learns which of its pixels take the
     /// mouse when those regions are rebuilt; without this the spot where the
     /// handle was would keep catching clicks until something else moved.
+    func apply(showsSettingsHandle: Bool) {
+        model.showsSettingsHandle = showsSettingsHandle
+        model.isHoveringSettings = false
+        updateInteractiveRects()
+    }
+
     func apply(showsMoveHandle: Bool) {
         guard model.showsMoveHandle != showsMoveHandle else { return }
         model.showsMoveHandle = showsMoveHandle
@@ -1198,6 +1210,14 @@ final class NotchWindowController {
     private static let arrivalBeat: TimeInterval = 0.05
     private var edgeChange = 0
 
+    func apply(agentHoldsOpen: Bool) {
+        guard self.agentHoldsOpen != agentHoldsOpen else { return }
+        self.agentHoldsOpen = agentHoldsOpen
+        guard visibility != .hidden else { return }
+        setExpanded(agentHoldsOpen)
+        updateInteractiveRects()
+    }
+
     func apply(_ visibility: NotchVisibility) {
         self.visibility = visibility
         // A standing choice outranks a peek that happens to be in flight.
@@ -1236,6 +1256,7 @@ final class NotchWindowController {
             // still takes the screen edge would keep swallowing the pointer.
             panel?.orderOut(nil)
         }
+        if agentHoldsOpen && visibility != .hidden { setExpanded(true) }
         setPointing(false)
         updateInteractiveRects()
     }
@@ -1279,7 +1300,7 @@ final class NotchWindowController {
                 guard let self, let panel = self.panel else { return }
                 self.peekWork = nil
                 self.peekUntil = nil
-                let stillHoldsOpen = self.model.isPinned || (self.model.isAlwaysOn && !(self.foldsForFullScreen && self.isFullScreenActive()))
+                let stillHoldsOpen = self.agentHoldsOpen || self.model.isPinned || (self.model.isAlwaysOn && !(self.foldsForFullScreen && self.isFullScreenActive()))
                 guard !stillHoldsOpen else { return }
                 // Left open if the peek did its job and the pointer is already
                 // there; the ordinary hover fold takes it from here.

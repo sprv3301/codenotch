@@ -291,12 +291,18 @@ struct ProviderCell: View {
     /// second line would be drawn in the bezel. The reading is still a hover
     /// away in the card.
     var showsReading: Bool = true
+    var showsRemainingPercentage: Bool = false
 
     /// A dash, not "0%": nothing read is not the same as nothing used.
     private var readingText: String {
         guard snapshot.hasReading else { return "—" }
-        guard let weekly = weeklyReading else { return snapshot.headlineText }
-        return "\(snapshot.headlineText)/\(Percent.text(for: weekly))%"
+        let headline = showsRemainingPercentage && snapshot.localModel == nil
+            && snapshot.headline?.prefersUsedText != true
+            ? snapshot.usedFraction.map { "\(Percent.text(for: max(0, 1 - $0)))%" } ?? snapshot.headlineText
+            : snapshot.headlineText
+        guard let weekly = weeklyReading else { return headline }
+        let fraction = showsRemainingPercentage ? max(0, 1 - weekly) : weekly
+        return "\(headline)/\(Percent.text(for: fraction))%"
     }
 
     /// What the weekly ring draws, when it and its reading are on. The pair

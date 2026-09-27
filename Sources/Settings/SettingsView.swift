@@ -797,6 +797,14 @@ struct SettingsView: View {
     private var appearancePane: some View {
         Form {
             Section(L10n.t("Notch")) {
+                Picker(L10n.t("Hover display"), selection: $preferences.expandedHoverDetails) {
+                    Text(L10n.t("Brief")).tag(false)
+                    Text(L10n.t("Expanded")).tag(true)
+                }
+                .pickerStyle(.segmented)
+
+                Toggle(L10n.t("Show remaining percentage in notch"), isOn: $preferences.remainingNotchPercentages)
+
                 Picker(L10n.t("Reset time"), selection: $preferences.resetTimeFormat) {
                     ForEach(ResetTimeFormat.allCases) { Text($0.title).tag($0) }
                 }
@@ -866,6 +874,12 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
 
                 Text(preferences.notchVisibility.explanation)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Toggle(L10n.t("Expand for active agents"), isOn: $preferences.expandsForAgentActivity)
+                Text(L10n.t("Keeps the notch open while an agent app is frontmost or a session is working or waiting. Otherwise follows Show. Hide keeps the notch hidden."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -994,6 +1008,8 @@ struct SettingsView: View {
 
                 // The arc above the notch. Hiding it loses nothing that cannot
                 // be reached another way: Edge, above, moves the notch too.
+                Toggle(L10n.t("Show settings handle"), isOn: $preferences.showsSettingsHandle)
+
                 Toggle(L10n.t("Show move handle"), isOn: $preferences.showsMoveHandle)
                 Text(L10n.t("The arc above the notch. Hold it to carry the notch to another edge — Edge above does the same."))
                     .font(.caption)

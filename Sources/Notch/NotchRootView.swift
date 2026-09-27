@@ -30,43 +30,46 @@ struct NotchRootView: View {
                 // Outside the notch and outside its clip: the orb hangs past
                 // the end of the shape, tucked into the corner the far flare
                 // makes.
-                SettingsOrb(isHovered: model.isHoveringSettings, edge: model.edge,
-                                    convex: model.orbHugsCorner,
-                                    arcRadius: model.orbArcRadiusInOrbSpace,
-                                    arcOffset: model.orbArcOffsetInOrbSpace,
-                                    spins: model.settingsSpins)
-                        // A second route to the same action the panel's own
-                        // `mouseDown` override reaches for — see
-                        // `NotchViewModel.onOpenSettings`. Both still depend
-                        // on the panel's `ignoresMouseEvents`/`hitTest` gate
-                        // to receive the click at all, so this alone would
-                        // not rescue a click that never reaches the content
-                        // view — but once it does, this fires reliably where
-                        // the AppKit-level path did not.
-                        .contentShape(Circle())
-                        .onTapGesture {
-                            model.settingsSpins += 1
-                            model.onOpenSettings?()
-                        }
-                        // Before `position`, not after. `position` hands back a
-                        // view the size of the whole panel with the orb placed
-                        // inside it, so a scale applied after this one scales
-                        // *that* layer about the panel's centre — which moves
-                        // the orb away from the notch by a share of the panel,
-                        // and left the arc floating off the corner it is drawn
-                        // to hug. Here it scales the orb about its own centre,
-                        // which is what `orbCentre` then places.
-                        .scaleEffect(model.sizeScale * model.orbScale)
-                        .position(orbCentre(place))
-                        // Outward, into the black — not inward to nothing.
-                        .scaleEffect(model.isExpanded ? 1 : model.orbMergeScale)
-                        // Full strength the whole way in. The arc is buried in
-                        // the notch before this reaches zero, so the fade is
-                        // only there to guarantee nothing is left on screen
-                        // once the notch has folded — it is never what the eye
-                        // sees the arc leave by.
-                        .opacity(model.isExpanded ? 1 : 0)
-                        .animation(motion(orbMotion), value: model.isExpanded)
+                if model.showsSettingsHandle {
+                    SettingsOrb(isHovered: model.isHoveringSettings, edge: model.edge,
+                                        convex: model.orbHugsCorner,
+                                        arcRadius: model.orbArcRadiusInOrbSpace,
+                                        arcOffset: model.orbArcOffsetInOrbSpace,
+                                        spins: model.settingsSpins)
+                            // A second route to the same action the panel's own
+                            // `mouseDown` override reaches for — see
+                            // `NotchViewModel.onOpenSettings`. Both still depend
+                            // on the panel's `ignoresMouseEvents`/`hitTest` gate
+                            // to receive the click at all, so this alone would
+                            // not rescue a click that never reaches the content
+                            // view — but once it does, this fires reliably where
+                            // the AppKit-level path did not.
+                            .contentShape(Circle())
+                            .onTapGesture {
+                                model.settingsSpins += 1
+                                model.onOpenSettings?()
+                            }
+                            // Before `position`, not after. `position` hands back a
+                            // view the size of the whole panel with the orb placed
+                            // inside it, so a scale applied after this one scales
+                            // *that* layer about the panel's centre — which moves
+                            // the orb away from the notch by a share of the panel,
+                            // and left the arc floating off the corner it is drawn
+                            // to hug. Here it scales the orb about its own centre,
+                            // which is what `orbCentre` then places.
+                            .scaleEffect(model.sizeScale * model.orbScale)
+                            .position(orbCentre(place))
+                            // Outward, into the black — not inward to nothing.
+                            .scaleEffect(model.isExpanded ? 1 : model.orbMergeScale)
+                            // Full strength the whole way in. The arc is buried in
+                            // the notch before this reaches zero, so the fade is
+                            // only there to guarantee nothing is left on screen
+                            // once the notch has folded — it is never what the eye
+                            // sees the arc leave by.
+                            .opacity(model.isExpanded ? 1 : 0)
+                            .animation(motion(orbMotion), value: model.isExpanded)
+
+                }
 
                 // The move handle, mirroring the settings orb at the other end
                 // of the stack. Same construction, same reasons — see the
@@ -115,6 +118,7 @@ struct NotchRootView: View {
                         now: model.now,
                         direction: model.edge.tooltipDirection,
                         sessionCap: model.sessionCap,
+                        expandedDetails: model.expandedHoverDetails,
                         resetTimeFormat: model.resetTimeFormat,
                         deepSeekPricingEnabled: model.deepSeekPricingEnabled,
                         deepSeekPricingSchedule: model.deepSeekPricingSchedule,
@@ -214,7 +218,7 @@ struct NotchRootView: View {
                     }
                 }
             }
-            
+
             ZStack {
                 // Nothing of ours underneath: a wash of our own would override the
                 // Clear/Tinted choice in Appearance settings, which is the whole
@@ -228,7 +232,7 @@ struct NotchRootView: View {
                 shape.fill(Palette.notch).opacity(glassy ? 0 : 1)
 
             }
-        }   
+        }
             // The glass and the fill both stay mounted so folding keeps
             // animating one shape rather than swapping one view for another
             // mid-flight; the crossfade rides on the unfold animation already
@@ -335,7 +339,8 @@ struct NotchRootView: View {
                 isRefreshing: model.isRefreshing(snapshot),
                 weeklyRing: model.weeklyRing,
                 showsWeeklyReading: model.weeklyReading,
-                showsReading: model.showsCellReading
+                showsReading: model.showsCellReading,
+                showsRemainingPercentage: model.remainingNotchPercentages
             )
                 // Pinned to what the cell claims along the stack, or the drawn
                 // rings stop lining up with the centres `ringCenter` hands to
@@ -415,14 +420,14 @@ struct NotchRootView: View {
                 windowCount: snapshot.windows.count,
                 groupCount: snapshot.windowGroupCount,
                 moneyWindowCount: snapshot.windows.filter { $0.money != nil }.count,
-                usageDetailGroupCount: snapshot.usageDetail?.visibleGroups.count ?? 0,
+                usageDetailGroupCount: model.expandedHoverDetails ? (snapshot.usageDetail?.visibleGroups.count ?? 0) : 0,
                 sessionCount: snapshot.localModel == nil ? (model.activity(for: snapshot.id)?.sessions.count ?? 0) : 0,
                 sessionCap: model.sessionCap,
                 statusMessage: snapshot.statusMessage,
                 blockMessage: snapshot.block?.summary(now: model.now),
-                hasTokenUsage: snapshot.tokenUsage != nil,
+                hasTokenUsage: model.expandedHoverDetails && (snapshot.tokenUsage != nil || snapshot.customUsageHistory != nil),
                 hasPlan: snapshot.plan != nil,
-                hasResetCredits: snapshot.hasAvailableResetCredits,
+                hasResetCredits: model.expandedHoverDetails && snapshot.hasAvailableResetCredits,
                 localModelName: snapshot.localModel?.name,
                 showsLocalPerformance: snapshot.showsLocalPerformance,
                 localLedgerRows: snapshot.localLedgerRowCount,
@@ -448,14 +453,14 @@ struct NotchRootView: View {
                 windowCount: snapshot.windows.count,
                 groupCount: snapshot.windowGroupCount,
                 moneyWindowCount: snapshot.windows.filter { $0.money != nil }.count,
-                usageDetailGroupCount: snapshot.usageDetail?.visibleGroups.count ?? 0,
+                usageDetailGroupCount: model.expandedHoverDetails ? (snapshot.usageDetail?.visibleGroups.count ?? 0) : 0,
                 sessionCount: snapshot.localModel == nil ? (model.activity(for: snapshot.id)?.sessions.count ?? 0) : 0,
                 sessionCap: model.sessionCap,
                 statusMessage: snapshot.statusMessage,
                 blockMessage: snapshot.block?.summary(now: model.now),
-                hasTokenUsage: snapshot.tokenUsage != nil,
+                hasTokenUsage: model.expandedHoverDetails && (snapshot.tokenUsage != nil || snapshot.customUsageHistory != nil),
                 hasPlan: snapshot.plan != nil,
-                hasResetCredits: snapshot.hasAvailableResetCredits,
+                hasResetCredits: model.expandedHoverDetails && snapshot.hasAvailableResetCredits,
                 localModelName: snapshot.localModel?.name,
                 showsLocalPerformance: snapshot.showsLocalPerformance,
                 localLedgerRows: snapshot.localLedgerRowCount,
